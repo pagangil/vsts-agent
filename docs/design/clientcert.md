@@ -12,7 +12,7 @@
   - CA root certificate in `.pem` format (This should contains the public key and signature of the CA root certificate)  
   - Client certificate in `.pem` format (This should contains the public key and signature of the Client certificate)  
   - Client certificate private key in `.pem` format (This should contains only the private key of the Client certificate)  
-  - Client certificate archive package in `.pfx` format (This should contains the signature, public key and private key of the Client certificate, we can get rid of this when we adopt netcore 2.0.)  
+  - Client certificate archive package in `.pfx` format (This should contains the signature, public key and private key of the Client certificate)  
   - Use `SAME` password to protect Client certificate private key and Client certificate archive package, since they both have client certificate's private key  
   
 The Build/Release agent is just xplat tool runner, base on what user defined in their Build/Release definition, invoke different tools to finish user's job. So the client certificate support is not only for the agent infrastructure but most important for all different tools and technologies user might use during a Build/Release job.
@@ -24,6 +24,7 @@ The Build/Release agent is just xplat tool runner, base on what user defined in 
       Consume Nuget/NPM packages from TFS package management use Nuget.exe and Npm
       [Future] Publish and consume artifacts from TFS artifact service use Drop.exe (artifact) and PDBSTR.exe (symbol)
 ```
+
 
 You can use `OpenSSL` to get all pre-required certificates format ready easily as long as you have all pieces of information.
 
@@ -80,3 +81,9 @@ Agent will expose client cert configuration via environment variables for every 
 ## Get client cert configuration by using [VSTS-Task-Lib](https://github.com/Microsoft/vsts-task-lib) method
 
 Please reference [VSTS-Task-Lib doc](https://github.com/Microsoft/vsts-task-lib/blob/master/node/docs/cert.md) for detail
+
+## Progress
+ - Agent infrastructure (you can configure and queue a build/release) [DONE]
+ - Fetch git repository [DONE]
+ - Fetch tfvc repository [Only supported in Windows agent]
+ - Expose client cert info to task sdk [DONE]
