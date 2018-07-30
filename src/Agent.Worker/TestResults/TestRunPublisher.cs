@@ -85,7 +85,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.TestResults
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     // Remove duplicate entries
-                    string[] attachments = (testResults[i + j]?.AttachmentData?.AttachmentsFilePathList != null) ? testResults[i + j].AttachmentData.AttachmentsFilePathList.ToArray() : null;
+                    string[] attachments = testResults[i + j]?.AttachmentData?.AttachmentsFilePathList?.ToArray();
                     HashSet<string> attachedFiles = GetUniqueTestRunFiles(attachments);
 
                     if (attachedFiles != null)
