@@ -2,12 +2,11 @@
   - N/A
   
 ## Bugs
-  - Fix git version requirment for VSTS build/release job. #1725
-  - Fix regression in configure agent using proxy and client certificate. #1725
-  - Handle '/proc' not exists when scan process environment variables. #1725
+  - add retry to docker pull, detect crash container. #1745
+  - add retry to git fetch. #1747
 
 ## Misc
-  - N/A
+  - Consume latest vss-api package. #1750
 
 ## Agent Downloads  
 
