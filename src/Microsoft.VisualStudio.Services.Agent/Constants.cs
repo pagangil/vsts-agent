@@ -61,7 +61,7 @@ namespace Microsoft.VisualStudio.Services.Agent
 
         public static class Agent
         {
-            public static readonly string Version = "2.138.6";
+            public static readonly string Version = "2.140.0";
 
 #if OS_LINUX
             public static readonly OSPlatform Platform = OSPlatform.Linux;
@@ -127,6 +127,7 @@ namespace Microsoft.VisualStudio.Services.Agent
                     public static readonly string LocalRun = "localRun";
                     public static readonly string Remove = "remove";
                     public static readonly string Run = "run";
+                    public static readonly string Warmup = "warmup";
                 }
 
                 //if you are adding a new flag, please make sure you update the

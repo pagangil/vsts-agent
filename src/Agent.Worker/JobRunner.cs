@@ -64,14 +64,9 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
             message.Variables[Constants.Variables.System.TFServerUrl] = systemConnection.Url.AbsoluteUri;
 
             // Make sure SystemConnection Url and Endpoint Url match Config Url base for OnPremises server
-            if (!message.Variables.ContainsKey(Constants.Variables.System.ServerType))
-            {
-                if (!UrlUtil.IsHosted(systemConnection.Url.AbsoluteUri)) // TODO: remove this after TFS/RM move to M133
-                {
-                    ReplaceConfigUriBaseInJobRequestMessage(message);
-                }
-            }
-            else if (string.Equals(message.Variables[Constants.Variables.System.ServerType]?.Value, "OnPremises", StringComparison.OrdinalIgnoreCase))
+            // System.ServerType will always be there after M133
+            if (!message.Variables.ContainsKey(Constants.Variables.System.ServerType) ||
+                string.Equals(message.Variables[Constants.Variables.System.ServerType]?.Value, "OnPremises", StringComparison.OrdinalIgnoreCase))
             {
                 ReplaceConfigUriBaseInJobRequestMessage(message);
             }
@@ -203,18 +198,22 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
                 // Expand the repository property values.
                 foreach (var repository in jobContext.Repositories)
                 {
-                    Dictionary<string, string> expandProperties = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-                    foreach (var property in repository.Properties.GetItems())
+                    // expand checkout option
+                    var checkoutOptions = repository.Properties.Get<JToken>(Pipelines.RepositoryPropertyNames.CheckoutOptions);
+                    if (checkoutOptions != null)
                     {
-                        expandProperties[property.Key] = JsonUtility.ToString(property.Value);
+                        checkoutOptions = jobContext.Variables.ExpandValues(target: checkoutOptions);
+                        checkoutOptions = VarUtil.ExpandEnvironmentVariables(HostContext, target: checkoutOptions);
+                        repository.Properties.Set<JToken>(Pipelines.RepositoryPropertyNames.CheckoutOptions, checkoutOptions); ;
                     }
 
-                    jobContext.Variables.ExpandValues(target: expandProperties);
-                    VarUtil.ExpandEnvironmentVariables(HostContext, target: expandProperties);
-
-                    foreach (var expandedProperty in expandProperties)
+                    // expand workspace mapping
+                    var mappings = repository.Properties.Get<JToken>(Pipelines.RepositoryPropertyNames.Mappings);
+                    if (mappings != null)
                     {
-                        repository.Properties.Set<JToken>(expandedProperty.Key, JsonUtility.FromString<JToken>(expandedProperty.Value));
+                        mappings = jobContext.Variables.ExpandValues(target: mappings);
+                        mappings = VarUtil.ExpandEnvironmentVariables(HostContext, target: mappings);
+                        repository.Properties.Set<JToken>(Pipelines.RepositoryPropertyNames.Mappings, mappings);
                     }
                 }
 

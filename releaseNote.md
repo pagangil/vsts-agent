@@ -2,11 +2,10 @@
   - N/A
   
 ## Bugs
-  - add retry to docker pull, detect crash container. #1745
-  - add retry to git fetch. #1747
+  - Fix null ref when building fork PR. #1808
 
 ## Misc
-  - Consume latest vss-api package. #1750
+  - N/A
 
 ## Agent Downloads  
 
