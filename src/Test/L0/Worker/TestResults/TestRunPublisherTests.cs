@@ -167,7 +167,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Tests.Worker.TestResults
 
             try
             {
-                File.Delete("colon123.trx");
+                File.Delete("colon:1:2:3.trx");
             }
             catch
             { }
