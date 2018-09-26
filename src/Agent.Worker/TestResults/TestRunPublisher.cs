@@ -289,8 +289,10 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.TestResults
                 string encodedData = Convert.ToBase64String(bytes);
                 if (encodedData.Length <= TCM_MAX_FILECONTENT_SIZE)
                 {
-                    attachment = attachment.Replace(":", "_");
-                    return new TestAttachmentRequestModel(encodedData, Path.GetFileName(attachment), "", GetAttachmentType(attachment));
+                    string attachmentFileName = Path.GetFileName(attachment);
+                    attachmentFileName = attachmentFileName.Replace(":", "_");
+
+                    return new TestAttachmentRequestModel(encodedData, attachmentFileName, "", GetAttachmentType(attachment));
                 }
                 else
                 {
