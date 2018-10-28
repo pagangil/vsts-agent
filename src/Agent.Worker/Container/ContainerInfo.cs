@@ -24,7 +24,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.Container
             ArgUtil.NotNullOrEmpty(containerImage, nameof(containerImage));
 
             this.ContainerImage = containerImage;
-            this.ContainerDisplayName = $"{container.Alias}_{Pipelines.Validation.NameValidation.Sanitize(containerImage)}";
+            this.ContainerDisplayName = $"{container.Alias}_{Pipelines.Validation.NameValidation.Sanitize(containerImage)}_{Guid.NewGuid().ToString("N").Substring(0, 6)}";
             this.ContainerRegistryEndpoint = container.Endpoint?.Id ?? Guid.Empty;
             this.ContainerCreateOptions = container.Properties.Get<string>("options");
             this.SkipContainerImagePull = container.Properties.Get<bool>("localimage");
@@ -44,7 +44,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.Container
         public string ContainerId { get; set; }
         public string ContainerDisplayName { get; private set; }
         public string ContainerNetwork { get; set; }
-        public string ContainerImage { get; private set; }
+        public string ContainerImage { get; set; }
         public string ContainerName { get; set; }
         public Guid ContainerRegistryEndpoint { get; private set; }
         public string ContainerCreateOptions { get; private set; }

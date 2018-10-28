@@ -1,6 +1,6 @@
 ﻿using System;
+using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Runtime.Loader;
 using System.Text;
@@ -18,6 +18,10 @@ namespace Agent.PluginHost
 
         public static int Main(string[] args)
         {
+            // We can't use the new SocketsHttpHandler for now for both Windows and Linux
+            // On linux, Negotiate auth is not working if the TFS url is behind Https
+            // On windows, Proxy is not working
+            AppContext.SetSwitch("System.Net.Http.UseSocketsHttpHandler", false);
             Console.CancelKeyPress += Console_CancelKeyPress;
 
             try
@@ -33,11 +37,21 @@ namespace Agent.PluginHost
 
                     // Set encoding to UTF8, process invoker will use UTF8 write to STDIN
                     Console.InputEncoding = Encoding.UTF8;
+                    Console.OutputEncoding = Encoding.UTF8;
                     string serializedContext = Console.ReadLine();
                     ArgUtil.NotNullOrEmpty(serializedContext, nameof(serializedContext));
 
                     AgentTaskPluginExecutionContext executionContext = StringUtil.ConvertFromJson<AgentTaskPluginExecutionContext>(serializedContext);
                     ArgUtil.NotNull(executionContext, nameof(executionContext));
+
+                    VariableValue culture;
+                    ArgUtil.NotNull(executionContext.Variables, nameof(executionContext.Variables));
+                    if (executionContext.Variables.TryGetValue("system.culture", out culture) &&
+                        !string.IsNullOrEmpty(culture?.Value))
+                    {
+                        CultureInfo.DefaultThreadCurrentCulture = new CultureInfo(culture.Value);
+                        CultureInfo.DefaultThreadCurrentUICulture = new CultureInfo(culture.Value);
+                    }
 
                     AssemblyLoadContext.Default.Resolving += ResolveAssembly;
                     try
@@ -50,7 +64,8 @@ namespace Agent.PluginHost
                     catch (Exception ex)
                     {
                         // any exception throw from plugin will fail the task.
-                        executionContext.Error(ex.ToString());
+                        executionContext.Error(ex.Message);
+                        executionContext.Debug(ex.StackTrace);
                     }
                     finally
                     {

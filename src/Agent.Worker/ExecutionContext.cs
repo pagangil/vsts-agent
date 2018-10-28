@@ -1,13 +1,16 @@
-using Microsoft.TeamFoundation.DistributedTask.WebApi;
-using Pipelines = Microsoft.TeamFoundation.DistributedTask.Pipelines;
-using Microsoft.VisualStudio.Services.Agent.Util;
 using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
+using System.Web;
 using Microsoft.VisualStudio.Services.Agent.Worker.Container;
 using Microsoft.VisualStudio.Services.WebApi;
+using Microsoft.TeamFoundation.DistributedTask.WebApi;
+using Pipelines = Microsoft.TeamFoundation.DistributedTask.Pipelines;
+using Microsoft.VisualStudio.Services.Agent.Util;
 
 namespace Microsoft.VisualStudio.Services.Agent.Worker
 {
@@ -20,6 +23,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
     [ServiceLocator(Default = typeof(ExecutionContext))]
     public interface IExecutionContext : IAgentService
     {
+        Task ForceCompleted { get; }
         TaskResult? Result { get; set; }
         string ResultCode { get; set; }
         TaskResult? CommandResult { get; set; }
@@ -54,6 +58,9 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
         void AddIssue(Issue issue);
         void Progress(int percentage, string currentOperation = null);
         void UpdateDetailTimelineRecord(TimelineRecord record);
+
+        // others
+        void ForceTaskComplete();
     }
 
     public sealed class ExecutionContext : AgentService, IExecutionContext
@@ -74,11 +81,13 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
         private Guid _detailTimelineId;
         private int _childTimelineRecordOrder = 0;
         private CancellationTokenSource _cancellationTokenSource;
+        private TaskCompletionSource<int> _forceCompleted = new TaskCompletionSource<int>();
         private bool _throttlingReported = false;
 
         // only job level ExecutionContext will track throttling delay.
         private long _totalThrottlingDelayInMilliseconds = 0;
 
+        public Task ForceCompleted => _forceCompleted.Task;
         public CancellationToken CancellationToken => _cancellationTokenSource.Token;
         public List<ServiceEndpoint> Endpoints { get; private set; }
         public List<SecureFile> SecureFiles { get; private set; }
@@ -132,6 +141,16 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
         public void CancelToken()
         {
             _cancellationTokenSource.Cancel();
+        }
+
+        public void ForceTaskComplete()
+        {
+            Trace.Info("Force finish current task in 5 sec.");
+            Task.Run(async () =>
+            {
+                await Task.Delay(TimeSpan.FromSeconds(5));
+                _forceCompleted?.TrySetResult(1);
+            });
         }
 
         public IExecutionContext CreateChild(Guid recordId, string displayName, string refName, Variables taskVariables = null)
@@ -561,6 +580,24 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
             if (!_throttlingReported)
             {
                 this.Warning(StringUtil.Loc("ServerTarpit"));
+
+                if (!String.IsNullOrEmpty(this.Variables.System_TFCollectionUrl))
+                {
+                    // Construct a URL to the resource utilization page, to aid the user debug throttling issues
+                    UriBuilder uriBuilder = new UriBuilder(Variables.System_TFCollectionUrl);
+                    NameValueCollection query = HttpUtility.ParseQueryString(uriBuilder.Query);
+                    DateTime endTime = DateTime.UtcNow;
+                    string queryDate = endTime.AddHours(-1).ToString("s") + "," + endTime.ToString("s");
+
+                    uriBuilder.Path += (Variables.System_TFCollectionUrl.EndsWith("/") ? "" : "/") + "_usersSettings/usage";
+                    query["tab"] = "pipelines";
+                    query["queryDate"] = queryDate;
+
+                    uriBuilder.Query = query.ToString();
+
+                    this.Warning(StringUtil.Loc("ServerTarpitUrl", uriBuilder.ToString()));
+                }
+
                 _throttlingReported = true;
             }
         }
